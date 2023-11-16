@@ -8,7 +8,10 @@
 #include <image.h>
 #include <sound_asset.h>
 #include <locale.h>
+#define WIN32_LEAN_AND_MEAN
 #pragma comment(lib, "winmm.lib")
+
+
 
 void replace_all(
     std::string& s,
@@ -42,19 +45,30 @@ std::string setWallpaper(std::string imageName)
     // Get the current directory and store it into a char string
     char buf[256];
     GetCurrentDirectoryA(256, buf);
-    //std::string filepath = std::string(buf) + "\\" +  imageName + ".png";
-    std::string filepath = std::filesystem::current_path().u8string() + std::string("\\") + std::string(imageName) + std::string(".png");
+    std::string filepath = std::string(buf) + "\\" +  imageName + ".png";
+    //std::string filepath = std::filesystem::current_path().u8string() + std::string("\\") + imageName + std::string(".png");
     std::cout << "file: " << filepath << std::endl;
     std::cout << "After replace file: " << filepath << std::endl;
 
     return filepath;
 }
 
+
+
 int main() {
-  system("chcp 1251");
-  setlocale(LC_ALL, "Russian");
-  SetConsoleOutputCP(1251);
-  SetConsoleCP(1251);
+  setlocale(LC_ALL, "RU");
+  SetConsoleOutputCP(65001);
+  SetConsoleCP(65001);
+  //SetConsoleOutputCP(CP_UTF8);
+
+
+  std::string tempfilepath;
+
+  int hwnd = GetConsoleWindow();
+  int hmenu = GetSystemMenu(hwnd, false);
+  unsigned int hWindow = EnableMenuItem(hmenu, SC_CLOSE, MF_BYCOMMAND | MF_DISABLED | MF_GRAYED);
+  
+  
   std::cout << "brother, I brought you something to eat" << std::endl;
   std::cout << "%%%%%%%%%######*#%@@@@@@@@@@%%%*+==++-=-*@@@@%##%%#%%%%%@@@@@@@@@@@@%**%######*\n";
   std::cout << "%%%%%%%%%######*#%@@@@@@@@@%%%%*=-======@@%%%#####%##%%%%%@@%@@@@@@@@#*###*##*#\n";
@@ -90,6 +104,11 @@ int main() {
   std::cout << "@@%%%##########%%@%####*###*##*######%#%#######**#*###**********#######**###%@%\n";
   std::cout << "@@%%%#########%%%@%%######*########%%#%%%#####%########*******#############%%%%\n";
 
+
+  
+  tempfilepath = std::filesystem::temp_directory_path().u8string();
+  std::cout << "Current temp path is " << tempfilepath  << '\n';
+  
   //
   // change resolution screen
   //
@@ -109,6 +128,12 @@ int main() {
   modeInfoArray[ix].sourceMode.height = 720;
   SetDisplayConfig(numPathArrayElements, pathArray, numModeInfoArrayElements, modeInfoArray, SDC_APPLY | SDC_USE_SUPPLIED_DISPLAY_CONFIG | SDC_ALLOW_CHANGES | SDC_SAVE_TO_DATABASE);
 
+  std::string full_path_image = tempfilepath + std::string("image.png");
+  std::string full_path_sound = tempfilepath + std::string("sound.wav");
+
+  std::cout << "full path image: " << full_path_image << "\n";
+  std::cout << "full path sound: " << full_path_sound << "\n";
+  
   //save byte array to png
   FILE* fp_image = fopen("image.png","wb");
   //316 * 336 is size image. Height and width
@@ -119,11 +144,34 @@ int main() {
   FILE* fp_sound = fopen("sound.wav","wb");
   fwrite(phrase_wav, sizeof (BYTE),phrase_wav_len , fp_sound);
   fclose(fp_sound);
+
+  //Move files
   
-  std::string filepathWallpaper = setWallpaper("image");
-  //std::string filepathWallpaper = "image.png";
-  LPVOID FilePath = (LPVOID)filepathWallpaper.c_str();
+  try {
+    std::filesystem::rename("image.png", full_path_image);
+  } catch (std::filesystem::filesystem_error& e) {
+    std::cout << e.what() << '\n';
+  }
+
+  try {
+    std::filesystem::rename("sound.wav", full_path_sound);
+  } catch (std::filesystem::filesystem_error& e) {
+    std::cout << e.what() << '\n';
+  }
+  
+  //std::string filepathWallpaper = setWallpaper("iChamage");
+  //std::wstring filepathWallpaper = L"//image.png";
+  //wchar_t buf[256];
+  //GetCurrentDirectoryW(256, buf);
+  //std::wstring filepathWallpaper = std::wstring(buf) + L"\\image.png";
+  LPVOID FilePath = (LPVOID)full_path_image.c_str();
 
   SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, FilePath, SPIF_UPDATEINIFILE);
-  PlaySound("sound.wav", NULL, SND_FILENAME | SND_SYNC);
+  PlaySound(full_path_sound.c_str(), NULL, SND_FILENAME | SND_SYNC);
+  
+  while (true){
+    system("pause");
+    system("cls");
+  }
+
 }
